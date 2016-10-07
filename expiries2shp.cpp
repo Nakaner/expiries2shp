@@ -65,15 +65,14 @@ OGRLayer* set_up_layer(std::string& out_directory, std::string& layer_name, OGRD
 }
 
 int main(int argc, char* argv[]) {
+    // parse command line arguments
     static struct option long_options[] = {
         {"projection", required_argument, 0, 'p'},
         {"sequence", required_argument, 0, 's'},
         {0, 0, 0, 0}
     };
-
     int epsg = 3857;
     std::string sequence = "0";
-
     while (true) {
         int c = getopt_long(argc, argv, "p:s:", long_options, 0);
         if (c == -1) {
@@ -92,7 +91,6 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
     }
-
     int remaining_args = argc - optind;
     std::string input_filename = "";
     std::string output_directory = "";
@@ -125,12 +123,14 @@ int main(int argc, char* argv[]) {
         std::cerr << "Creation of output file failed.\n";
         exit(1);
     }
-    OGRSpatialReference web_mercator_srs;
+    OGRSpatialReference web_mercator_srs; // only necessary if output SRS is not EPSG:3857
     web_mercator_srs.importFromEPSG(3857);
     OGRSpatialReference output_srs;
     output_srs.importFromEPSG(epsg);
     OGRLayer* layer = set_up_layer(output_directory, sequence, data_source, &output_srs);
 
+
+    // read expiry file and write shape file
     std::string line;
     while (std::getline(expiryfile,line)) {
         std::vector<std::string> elements;
@@ -162,6 +162,5 @@ int main(int argc, char* argv[]) {
     OGRDataSource::DestroyDataSource(data_source);
     OGRCleanupAll();
     expiryfile.close();
-
 }
 
