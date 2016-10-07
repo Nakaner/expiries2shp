@@ -91,10 +91,32 @@ int main(int argc, char* argv[]) {
         std::cerr << "Creating sequence field failed.\n";
         exit(1);
     }
+    OGRFieldDefn zoom_field("zoom", OFTInteger);
+    zoom_field.SetWidth(3);
+    ogrerr = layer->CreateField(&zoom_field);
+    if (ogrerr != OGRERR_NONE) {
+        std::cerr << "Creating zoom field failed.\n";
+        exit(1);
+    }
+    OGRFieldDefn x_field("x", OFTInteger);
+    x_field.SetWidth(7);
+    ogrerr = layer->CreateField(&x_field);
+    if (ogrerr != OGRERR_NONE) {
+        std::cerr << "Creating x field failed.\n";
+        exit(1);
+    }
+    OGRFieldDefn y_field("y", OFTInteger);
+    y_field.SetWidth(3);
+    ogrerr = layer->CreateField(&y_field);
+    if (ogrerr != OGRERR_NONE) {
+        std::cerr << "Creating y field failed.\n";
+        exit(1);
+    }
     layer->StartTransaction();
 
     std::ofstream file;
-    std::string cpgname = sequence;
+    std::string cpgname = output_filename;
+    cpgname += sequence;
     cpgname += ".cpg";
     file.open(cpgname.c_str());
     if (file.fail()) {
@@ -109,11 +131,17 @@ int main(int argc, char* argv[]) {
         // splitting the string
         boost::split(elements, line, boost::is_any_of("/"));
 
-        Tile tile(std::stoi(elements.at(1)), std::stoi(elements.at(2)), std::stoi(elements.at(0)));
+        int zoom = std::stoi(elements.at(0));
+        int x = std::stoi(elements.at(1));
+        int y = std::stoi(elements.at(2));
+        Tile tile(x, y, zoom);
         std::unique_ptr<OGRPolygon> polygon = tile.get_square();
         OGRFeature* feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
         feature->SetGeometry(polygon.get());
         feature->SetField("sequence", sequence.c_str());
+        feature->SetField("zoom", zoom);
+        feature->SetField("x", x);
+        feature->SetField("y", y);
         if (layer->CreateFeature(feature) != OGRERR_NONE) {
             std::cerr << "Failed to create feature.\n";
             exit(1);
