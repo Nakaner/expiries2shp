@@ -15,73 +15,10 @@
 #include <boost/algorithm/string.hpp>
 #include "tile.hpp"
 
-const double EARTH_CIRCUMFERENCE = 40075016.68;
-
-int main(int argc, char* argv[]) {
-    static struct option long_options[] = {
-        {"projection", required_argument, 0, 'p'},
-        {"sequence", required_argument, 0, 's'},
-        {0, 0, 0, 0}
-    };
-
-    int epsg = 3857;
-    std::string sequence = "0";
-
-    while (true) {
-        int c = getopt_long(argc, argv, "p:s:", long_options, 0);
-        if (c == -1) {
-            break;
-        }
-
-        switch (c) {
-        case 'p':
-            epsg = atoi(optarg);
-            break;
-        case 's':
-            sequence = optarg;
-            break;
-        default:
-            exit(1);
-        }
-    }
-
-    int remaining_args = argc - optind;
-    std::string input_filename = "";
-    std::string output_filename = "";
-    if (remaining_args != 2) {
-            std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE OUT_DIRECTORY]" << std::endl;
-            exit(1);
-    } else {
-        input_filename =  argv[optind];
-        output_filename = argv[optind+1];
-        if (output_filename[output_filename.size()-1] != '/') { // add missing trailing slash
-            output_filename.push_back('/');
-        }
-    }
-
-    // Do the real work
-    std::ifstream expiryfile;
-    expiryfile.open(input_filename);
-
-    // create shape file
-    OGRRegisterAll();
-    OGRSFDriver* driver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName("ESRI Shapefile");
-    if (!driver) {
-        std::cerr << "ESRI Shapefile driver not available.\n";
-        exit(1);
-    }
-    CPLSetConfigOption("SHAPE_ENCODING", "UTF8");
-
-    OGRDataSource* data_source = driver->CreateDataSource(output_filename.c_str(), NULL);
-    if (!data_source) {
-        std::cerr << "Creation of output file failed.\n";
-        exit(1);
-    }
-    OGRSpatialReference output_srs;
-    output_srs.importFromEPSG(epsg);
-    OGRLayer *layer = data_source->CreateLayer(sequence.c_str(), &output_srs, wkbPolygon, NULL);
+OGRLayer* set_up_layer(std::string& out_directory, std::string& layer_name, OGRDataSource* data_source, OGRSpatialReference* output_srs) {
+    OGRLayer *layer = data_source->CreateLayer(layer_name.c_str(), output_srs, wkbPolygon, NULL);
     if (!layer) {
-        std::cerr << "Creating layer " << output_filename << " failed.\n";
+        std::cerr << "Creating layer " << layer_name << " failed.\n";
         exit(1);
     }
     OGRFieldDefn sequence_field("sequence", OFTString);
@@ -115,8 +52,8 @@ int main(int argc, char* argv[]) {
     layer->StartTransaction();
 
     std::ofstream file;
-    std::string cpgname = output_filename;
-    cpgname += sequence;
+    std::string cpgname = out_directory;
+    cpgname += layer_name;
     cpgname += ".cpg";
     file.open(cpgname.c_str());
     if (file.fail()) {
@@ -124,6 +61,75 @@ int main(int argc, char* argv[]) {
     }
     file << "UTF-8" << std::endl;
     file.close();
+    return layer;
+}
+
+int main(int argc, char* argv[]) {
+    static struct option long_options[] = {
+        {"projection", required_argument, 0, 'p'},
+        {"sequence", required_argument, 0, 's'},
+        {0, 0, 0, 0}
+    };
+
+    int epsg = 3857;
+    std::string sequence = "0";
+
+    while (true) {
+        int c = getopt_long(argc, argv, "p:s:", long_options, 0);
+        if (c == -1) {
+            break;
+        }
+
+        switch (c) {
+        case 'p':
+            epsg = atoi(optarg);
+            std::cout << "Using output SRS EPSG:" << epsg << std::endl;
+            break;
+        case 's':
+            sequence = optarg;
+            break;
+        default:
+            exit(1);
+        }
+    }
+
+    int remaining_args = argc - optind;
+    std::string input_filename = "";
+    std::string output_directory = "";
+    if (remaining_args != 2) {
+            std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE OUT_DIRECTORY]" << std::endl;
+            exit(1);
+    } else {
+        input_filename =  argv[optind];
+        output_directory = argv[optind+1];
+        if (output_directory[output_directory.size()-1] != '/') { // add missing trailing slash
+            output_directory.push_back('/');
+        }
+    }
+
+    // Do the real work
+    std::ifstream expiryfile;
+    expiryfile.open(input_filename);
+
+    // create shape file
+    OGRRegisterAll();
+    OGRSFDriver* driver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName("ESRI Shapefile");
+    if (!driver) {
+        std::cerr << "ESRI Shapefile driver not available.\n";
+        exit(1);
+    }
+    CPLSetConfigOption("SHAPE_ENCODING", "UTF8");
+
+    OGRDataSource* data_source = driver->CreateDataSource(output_directory.c_str(), NULL);
+    if (!data_source) {
+        std::cerr << "Creation of output file failed.\n";
+        exit(1);
+    }
+    OGRSpatialReference web_mercator_srs;
+    web_mercator_srs.importFromEPSG(3857);
+    OGRSpatialReference output_srs;
+    output_srs.importFromEPSG(epsg);
+    OGRLayer* layer = set_up_layer(output_directory, sequence, data_source, &output_srs);
 
     std::string line;
     while (std::getline(expiryfile,line)) {
@@ -137,6 +143,10 @@ int main(int argc, char* argv[]) {
         Tile tile(x, y, zoom);
         std::unique_ptr<OGRPolygon> polygon = tile.get_square();
         OGRFeature* feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+        if (epsg != 3857) {
+            polygon->assignSpatialReference(&web_mercator_srs);
+            polygon->transformTo(&output_srs);
+        }
         feature->SetGeometry(polygon.get());
         feature->SetField("sequence", sequence.c_str());
         feature->SetField("zoom", zoom);
