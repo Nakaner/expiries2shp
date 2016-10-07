@@ -20,7 +20,7 @@ private:
     const double EARTH_CIRCUMFERENCE = 40075016.68;
 
     /**
-     * convert x index of a tile into the Mercator x coordinate of its south-western corner
+     * convert x index of a tile into the Mercator x coordinate of its north-western corner
      *
      * @param tile_x x coordinate
      * @param map_width number of tiles in any direction at this zoom level
@@ -28,7 +28,7 @@ private:
     double tile_x_to_merc(double tile_x, int map_width);
 
     /**
-     * convert x index of a tile into the Mercator y coordinate of its south-western corner
+     * convert x index of a tile into the Mercator y coordinate of its north-western corner
      *
      * @param tile_y y coordinate
      * @param map_width number of tiles in any direction at this zoom level

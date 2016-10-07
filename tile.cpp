@@ -27,9 +27,9 @@ double Tile::tile_y_to_merc(double tile_y, int map_width) {
 std::unique_ptr<OGRPolygon> Tile::get_square() {
     std::unique_ptr<OGRLinearRing> ring  (new OGRLinearRing());
     ring->addPoint(m_x, m_y);
-    ring->addPoint(m_x, m_y + m_width);
-    ring->addPoint(m_x + m_width, m_y + m_width);
     ring->addPoint(m_x + m_width, m_y);
+    ring->addPoint(m_x + m_width, m_y - m_width);
+    ring->addPoint(m_x, m_y - m_width);
     std::unique_ptr<OGRPolygon> polygon (new OGRPolygon());
     polygon->addRingDirectly(ring.release());
     return polygon;
