@@ -12,3 +12,8 @@ expiries2shp needs GDAL and Boost.
 Ubuntu packages: libboost libgdal
 
 You might adapt the include pathes used in the Makefile.
+
+License
+-------
+
+See third-party.md and LICENSE.md for details.
