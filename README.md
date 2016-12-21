@@ -40,7 +40,7 @@ tiles of one month might have a size of about 1 GB.
 To create a heat map of all expired tiles at zoom level 12, import the shape file into a PostGIS database using shp2pgsql and run
 following SQL query afterwards (`expiry` is the table with the data of the shape file):
 
-    SELECT INTO expiry_heatmap count(geom), x, y, zoom, geom FROM expiry WHERE zoom = 12 GROUP BY x, y, zoom, geom;
+    SELECT count(geom), x, y, zoom, geom INTO expiry_heatmap FROM expiry WHERE zoom = 12 GROUP BY x, y, zoom, geom;
 
 License
 -------
