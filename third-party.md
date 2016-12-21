@@ -3,11 +3,36 @@ Third-Party code
 
 This program uses the GDAL library.
 
-GDAL (for writing)
-  http://gdal.org/
-  Copyright (c) 1999,  Les Technologies SoftMap Inc.
+GDAL
+----
+The [GDAL/OGR library](http://gdal.org/) is used for writing the shape files.
+
+Copyright (c) 2000, Frank Warmerdam
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
 
 Osmium v1 (only too ensure that a shapefile does not become too full)
-  https://github.com/joto/osmium
-  Copyright 2012 Jochen Topf <jochen@topf.org> and others
+---------
+Code from the [old Osmium](https://github.com/joto/osmium) library is used to
+ensure that the shape file does not become too large.
 
+Copyright 2012 Jochen Topf <jochen@topf.org> and others
+
+Osmiums is available under the terms of GNU GPL version 3 or later.
