@@ -85,9 +85,9 @@ std::string get_filename(std::string& path) {
     size_t begin = path.find_last_of("/");
     // look for .shp suffix
     size_t end = path.rfind(".shp");
-    end = path.length() - end;
     if (begin == std::string::npos) {
-        return path.substr(0, end);
+        std::cerr << "ERROR: Output path is a directory but should be a file.\n";
+        exit(1);
     } else {
         return path.substr(begin+1, end);
     }
