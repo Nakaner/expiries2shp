@@ -11,7 +11,8 @@
 #include <boost/algorithm/string.hpp>
 #include "output_layer.hpp"
 
-void read_expiry_file(std::string& filename, OutputLayer& layer, std::string sequence, bool tile_ids, int min_zoom, int max_zoom) {
+void read_expiry_file(std::string& filename, OutputLayer& layer, std::string sequence,
+        bool tile_ids, int min_zoom, int max_zoom, int metatile_size) {
     if (sequence == "") {
         sequence = filename.substr(0, filename.find_last_of("."));
     }
@@ -29,7 +30,11 @@ void read_expiry_file(std::string& filename, OutputLayer& layer, std::string seq
         }
         int x = std::stoi(elements.at(1));
         int y = std::stoi(elements.at(2));
-        layer.write_tile(x, y, zoom, sequence, tile_ids);
+        for (int offset_x = 0; offset_x < metatile_size; ++offset_x) {
+            for (int offset_y = 0; offset_y < metatile_size; ++offset_y) {
+                layer.write_tile(x + offset_x, y + offset_y, zoom, sequence, tile_ids);
+            }
+        }
     }
     expiryfile.close();
 }
@@ -62,14 +67,16 @@ std::vector<std::string> get_filenames_matching_glob(std::string& pattern) {
 void print_help() {
     std::cerr << "USAGE:\nexpiries2shp [OPTIONS] [INFILES OUT_FILENAME]\n" \
               << "\nOptions:\n" \
-              << "  -f, --format         output format (default 'ESRI Shapefile')\n" \
-              << "  -p, --projection     Use other projection than EPSG:3857 for output.\n" \
-              << "  -s, --sequence       Sequence number instead of filename without suffix\n" \
-              << "  -i, --ids            Add columns with x and y index of the tile\n" \
-              << "  -v, --verbose        enable verbose output\n" \
-              << "  -z, --min-zoom       Only export tiles with zoom equal or larger than this\n" \
-              << "  -Z, --max-zoom       Only export tiles with zoom equal or smaller than this\n" \
-              << "                       create this expiry list.\n";
+              << "  -f, --format                  output format (default 'ESRI Shapefile')\n" \
+              << "  -p, --projection              Use other projection than EPSG:3857 for output.\n" \
+              << "  -s, --sequence                Sequence number instead of filename without suffix\n" \
+              << "  -i, --ids                     Add columns with x and y index of the tile\n" \
+              << "  -m NUM, --metatile-size NUM   Use if input list contains top left tiles of metatiles only.\n" \
+              << "                                Specify meta tile size.\n" \
+              << "  -v, --verbose                 enable verbose output\n" \
+              << "  -z, --min-zoom                Only export tiles with zoom equal or larger than this\n" \
+              << "  -Z, --max-zoom                Only export tiles with zoom equal or smaller than this\n" \
+              << "                                create this expiry list.\n";
 }
 
 std::string get_directory(std::string& path) {
@@ -100,6 +107,7 @@ int main(int argc, char* argv[]) {
         {"projection", required_argument, 0, 'p'},
         {"sequence", required_argument, 0, 's'},
         {"ids", no_argument, 0, 'i'},
+        {"metatile-size", required_argument, 0, 'm'},
         {"verbose", no_argument, 0, 'v'},
         {"min-zoom", required_argument, 0, 'z'},
         {"max-zoom", required_argument, 0, 'Z'},
@@ -109,11 +117,12 @@ int main(int argc, char* argv[]) {
     std::string sequence = "";
     std::string output_format = "ESRI Shapefile";
     bool tile_ids = false;
+    int metatile_size = 1;
     bool verbose = false;
     int min_zoom = 0;
     int max_zoom = 25;
     while (true) {
-        int c = getopt_long(argc, argv, "f:p:s:ifz:Z:v", long_options, 0);
+        int c = getopt_long(argc, argv, "f:p:s:im:fz:Z:v", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -130,6 +139,12 @@ int main(int argc, char* argv[]) {
             break;
         case 'i':
             tile_ids = true;
+            break;
+        case 'm':
+            metatile_size = atoi(optarg);
+            if (metatile_size < 1 || metatile_size > 8) {
+                std::cerr << "WARNING: Metatile size is abnormal. Expected values between 1 and 8.\n";
+            }
             break;
         case 'v':
             verbose = true;
@@ -166,7 +181,7 @@ int main(int argc, char* argv[]) {
         if (verbose) {
             std::cout << "Reading file " << filename << "\n";
         }
-        read_expiry_file(filename, output_layer, sequence, tile_ids, min_zoom, max_zoom);
+        read_expiry_file(filename, output_layer, sequence, tile_ids, min_zoom, max_zoom, metatile_size);
     }
 }
 
