@@ -24,7 +24,7 @@ OutputLayer::OutputLayer(std::string&& out_directory, std::string&& layer_name, 
 }
 
 OutputLayer::~OutputLayer() {
-    OGRDataSource::DestroyDataSource(m_data_source);
+	GDALClose(m_dataset);
     OGRCleanupAll();
 }
 
@@ -41,7 +41,10 @@ void OutputLayer::add_field(const std::string& field_name, OGRFieldType type, in
 }
 
 void OutputLayer::close_layer() {
-    m_layer->CommitTransaction();
+	if (m_layer->CommitTransaction() != OGRERR_NONE) {
+	    std::cerr << "Error commit transation\n";
+	    exit(1);
+	}
     m_layer->SyncToDisk();
 }
 
@@ -53,7 +56,7 @@ void OutputLayer::open_layer() {
     std::string current_layer_name = m_layer_name;
     current_layer_name += "_";
     current_layer_name += std::to_string(m_current_index);
-    m_layer = m_data_source->CreateLayer(current_layer_name.c_str(), &m_output_srs, wkbPolygon, NULL);
+    m_layer = m_dataset->CreateLayer(current_layer_name.c_str(), &m_output_srs, wkbPolygon, NULL);
     if (!m_layer) {
         std::cerr << "Creating layer " << m_layer_name << " failed.\n";
         exit(1);
@@ -72,7 +75,10 @@ void OutputLayer::open_layer() {
 
     m_current_shp_size = 100;
 
-    m_layer->StartTransaction();
+    if (m_layer->StartTransaction() != OGRERR_NONE) {
+        std::cerr << "Error starting transaction\n";
+        exit(1);
+    }
 }
 
 void OutputLayer::write_cpg_file() {
@@ -92,17 +98,17 @@ void OutputLayer::write_cpg_file() {
 
 void OutputLayer::setup_data_source() {
     OGRRegisterAll();
-    m_driver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName(m_output_format.c_str());
+    GDALDriver* m_driver = GetGDALDriverManager()->GetDriverByName(m_output_format.c_str());
     if (!m_driver) {
-        std::cerr << "ESRI Shapefile driver not available.\n";
+        std::cerr << "Driver for " << m_output_format << " is not available.\n";
         exit(1);
     }
     if (m_output_format == "ESRI Shapfile") {
         CPLSetConfigOption("SHAPE_ENCODING", "UTF8");
     }
 
-    m_data_source = m_driver->CreateDataSource(m_directory.c_str(), NULL);
-    if (!m_data_source) {
+    m_dataset = m_driver->Create(m_directory.c_str(), 0, 0, 0, GDT_Unknown, NULL);
+    if (!m_dataset) {
         std::cerr << "Creation of output file failed.\n";
         exit(1);
     }

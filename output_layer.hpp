@@ -29,8 +29,8 @@ private:
     bool m_tile_ids;
     std::string& m_output_format;
 
-    OGRSFDriver* m_driver;
-    OGRDataSource* m_data_source;
+    GDALDriver* m_driver;
+    GDALDataset* m_dataset;
 
     // counters and constants for calculation of current SHP and DBF file size
     size_t m_current_dbf_size = 0;
