@@ -24,7 +24,9 @@ OutputLayer::OutputLayer(std::string&& out_directory, std::string&& layer_name, 
 }
 
 OutputLayer::~OutputLayer() {
-	GDALClose(m_dataset);
+#if GDAL_VERSION_MAJOR < 2
+    OGRDataSource::DestroyDataSource(m_data_source);
+#endif
     OGRCleanupAll();
 }
 
@@ -56,7 +58,12 @@ void OutputLayer::open_layer() {
     std::string current_layer_name = m_layer_name;
     current_layer_name += "_";
     current_layer_name += std::to_string(m_current_index);
-    m_layer = m_dataset->CreateLayer(current_layer_name.c_str(), &m_output_srs, wkbPolygon, NULL);
+#if GDAL_VERSION_MAJOR >= 2
+    char* options;
+    m_layer = m_data_source->CreateLayer(current_layer_name.c_str(), &m_output_srs, wkbPolygon, &options);
+#else
+    m_layer = m_data_source->CreateLayer(current_layer_name.c_str(), &m_output_srs, wkbPolygon, NULL);
+#endif
     if (!m_layer) {
         std::cerr << "Creating layer " << m_layer_name << " failed.\n";
         exit(1);
@@ -98,7 +105,11 @@ void OutputLayer::write_cpg_file() {
 
 void OutputLayer::setup_data_source() {
     OGRRegisterAll();
-    GDALDriver* m_driver = GetGDALDriverManager()->GetDriverByName(m_output_format.c_str());
+#if GDAL_VERSION_MAJOR >= 2
+    m_driver = GetGDALDriverManager()->GetDriverByName(m_output_format.c_str());
+#else
+    m_driver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName(m_output_format.c_str());
+#endif
     if (!m_driver) {
         std::cerr << "Driver for " << m_output_format << " is not available.\n";
         exit(1);
@@ -107,8 +118,13 @@ void OutputLayer::setup_data_source() {
         CPLSetConfigOption("SHAPE_ENCODING", "UTF8");
     }
 
-    m_dataset = m_driver->Create(m_directory.c_str(), 0, 0, 0, GDT_Unknown, NULL);
-    if (!m_dataset) {
+#if GDAL_VERSION_MAJOR >= 2
+    char* options = nullptr;
+    m_data_source = m_driver->Create(m_directory.c_str(), 0, 0, 0, GDT_Unknown, &options);
+#else
+    m_data_source = m_driver->CreateDataSource(m_directory.c_str(), NULL);
+#endif
+    if (!m_data_source) {
         std::cerr << "Creation of output file failed.\n";
         exit(1);
     }

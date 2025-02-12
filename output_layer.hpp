@@ -12,6 +12,11 @@
 
 #include <iostream>
 #include <fstream>
+
+#if GDAL_VERSION_MAJOR >= 2
+#include <memory>
+#endif
+
 #include <gdal/ogr_geometry.h>
 #include <gdal/ogrsf_frmts.h>
 #include <gdal/ogr_api.h>
@@ -19,6 +24,14 @@
 
 class OutputLayer {
 private:
+#if GDAL_VERSION_MAJOR >= 2
+    using gdal_driver_type = GDALDriver;
+    using gdal_dataset_type = GDALDataset;
+#else
+    using gdal_driver_type = OGRSFDriver;
+    using gdal_dataset_type = OGRDataSource;
+#endif
+
     //current shapefile suffix (for overflow cases)
     int m_current_index;
 
@@ -29,8 +42,8 @@ private:
     bool m_tile_ids;
     std::string& m_output_format;
 
-    GDALDriver* m_driver;
-    GDALDataset* m_dataset;
+    gdal_driver_type* m_driver;
+    gdal_dataset_type* m_data_source;
 
     // counters and constants for calculation of current SHP and DBF file size
     size_t m_current_dbf_size = 0;
