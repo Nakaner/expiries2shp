@@ -65,7 +65,9 @@ std::vector<std::string> get_filenames_matching_glob(std::string& pattern) {
 }
 
 void print_help() {
-    std::cerr << "USAGE:\nexpiries2shp [OPTIONS] [INFILES OUT_FILENAME]\n" \
+    std::cerr << "USAGE:\nexpiries2shp [OPTIONS] INPUT_FILE OUTPUT_FILE\n" \
+              << "  INPUT_FILE is the file to read from or a glob pattern.\n" \
+              << "  OUTPUT_FILE is the file to write to." \
               << "\nOptions:\n" \
               << "  -f, --format                  output format (default 'ESRI Shapefile')\n" \
               << "  -p, --projection              Use other projection than EPSG:3857 for output.\n" \
